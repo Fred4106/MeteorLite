@@ -113,8 +113,16 @@ public class AnnotationMapper {
 
     for (Annotation a : from.getAnnotations().values()) {
       if (isCopyable(a)) {
-        to.addAnnotation(a);
-        ++count;
+        Annotation toAnnot = to.findAnnotation(DeobAnnotations.EXPORT);
+        if(toAnnot != null) {
+          if(!toAnnot.getValueString().equals(a.getValueString())) {
+            toAnnot.setElement(a.getValue());
+            ++count;
+          }
+        } else {
+          to.addAnnotation(a);
+          ++count;
+        }
       }
     }
 
