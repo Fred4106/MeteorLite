@@ -73,6 +73,7 @@ import net.runelite.asm.attributes.code.instructions.InvokeStatic;
 import net.runelite.asm.attributes.code.instructions.LDC;
 import net.runelite.asm.attributes.code.instructions.Pop;
 import net.runelite.asm.attributes.code.instructions.PutField;
+import net.runelite.asm.pool.Class;
 import net.runelite.asm.signature.Signature;
 import net.runelite.deob.DeobAnnotations;
 import net.runelite.deob.util.JarUtil;
@@ -94,6 +95,7 @@ public class MixinInjector extends AbstractInjector {
   private final Map<net.runelite.asm.pool.Field, ShadowField> shadowFields = new HashMap<>();
   private int injectedInterfaces = 0;
   private int copied = 0, replaced = 0, injected = 0;
+  private Class lastClass;
 
   public MixinInjector(InjectData inject) {
     super(inject);
@@ -566,8 +568,14 @@ public class MixinInjector extends AbstractInjector {
           //			log.debug("[DEBUG] Replaced {} type {} with type {}", i, type, newType);
         }
       } else if (i instanceof InvokeInstruction) {
+        Class clazz;
         InvokeInstruction ii = (InvokeInstruction) i;
-
+        try {
+          clazz = ii.getMethod().getClazz();
+          lastClass = clazz;
+        } catch (Exception e) {
+          //ignore
+        }
         CopiedMethod copiedMethod = copiedMethods.get(ii.getMethod());
         if (copiedMethod != null) {
           ii.setMethod(copiedMethod.copy.getPoolMethod());
@@ -578,7 +586,7 @@ public class MixinInjector extends AbstractInjector {
             iterator.add(new LDC(method.getCode().getInstructions(), copiedMethod.garbage));
             iterator.next();
           }
-        } else if (ii.getMethod().getClazz().getName().equals(mixinCf.getName())) {
+        } else if (lastClass.getName().equals(mixinCf.getName())) {
           ii.setMethod(new net.runelite.asm.pool.Method(
               new net.runelite.asm.pool.Class(cf.getName()),
               ii.getMethod().getName(),
